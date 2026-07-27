@@ -36,11 +36,12 @@ ten requirements:
   the line total is `quantity × unit value`, and the shipment total sums the lines. If the
   team records weight as an already-totalled figure per line, one multiplication in
   `shipment.item` needs to change.
-- **Quantity and weight are mandatory and must be > 0; volume is optional.** Every real
-  item weighs something, so a zero-weight line is refused — it was the loophole that let a
-  "ghost shipment" (0 kg, 0 m³ total) reach the courier. Volume stays optional because in
-  practice teams often can't measure it, but it can never be negative. A documents-only
-  shipment just gets a small real weight (e.g. 0.05 for an envelope).
+- **Quantity, weight, and volume are all mandatory and must be > 0.** The brief lists all
+  three as properties of a cargo item, and physically anything with weight occupies space —
+  a line claiming otherwise is a data-entry error, not a special case. This closed a real
+  loophole found while testing: a "ghost shipment" (0 kg, 0 m³ totals) could previously
+  reach the courier. Small items simply take small real values (an envelope: 0.05 kg,
+  0.001 m³).
 - **Delivery date cannot be before pickup date** — added as a sanity guard; remove
   `_check_dates` if the team wants to allow it.
 - **The customer is Odoo's built-in contact** (`res.partner`), reused rather than
@@ -93,7 +94,7 @@ using the first version:
   enforced in the model (not just hidden in the view), so they can't be bypassed by a stale
   browser tab or a direct API call. Details in the caveats below.
 - **Input validation from a "careless user" walkthrough.** After deliberately trying to
-  misuse the app, these are now refused: cargo lines with no/zero weight, a shipment whose
+  misuse the app, these are now refused: cargo lines with zero weight or volume, a shipment whose
   origin equals its destination (case- and space-insensitive), a pickup date in the past,
   duplicate shipment-type names, and type codes that only differ by case or spacing (codes
   are trimmed and upper-cased on save; blank names/codes are rejected). Same-day delivery
@@ -238,8 +239,8 @@ dates, the reference `name`, and the `state`.
 
 Description, quantity, per-unit weight and volume, and computed line totals. Linked to its
 shipment by a `Many2one` with `ondelete="cascade"` — a line has no meaning without its
-parent, so deleting a (draft) shipment cleans up its lines. Constraints keep quantity and
-weight > 0 (volume ≥ 0), and create/write/unlink are blocked once the shipment has left
+parent, so deleting a (draft) shipment cleans up its lines. Constraints keep quantity,
+weight, and volume all > 0, and create/write/unlink are blocked once the shipment has left
 preparation so a closed shipment's numbers stay fixed.
 
 ### Why this shape

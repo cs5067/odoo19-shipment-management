@@ -35,6 +35,9 @@ class ShipmentItem(models.Model):
 
     @api.constrains("quantity", "weight", "volume")
     def _check_positive_values(self):
+        # The brief gives every cargo item a quantity, a weight and a volume;
+        # physically, anything that weighs something also occupies space, so
+        # all three must be positive — no ghost cargo.
         for item in self:
             if item.quantity <= 0:
                 raise ValidationError(
@@ -47,9 +50,12 @@ class ShipmentItem(models.Model):
                         "every shipped item weighs something."
                     )
                 )
-            if item.volume < 0:
+            if item.volume <= 0:
                 raise ValidationError(
-                    _("Item volume cannot be negative.")
+                    _(
+                        "Item volume must be greater than zero — "
+                        "anything with weight occupies space."
+                    )
                 )
 
     def _check_shipment_editable(self):
