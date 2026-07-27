@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="shipment_request_view_list" model="ir.ui.view">
+        <field name="name">shipment.request.view.list</field>
+        <field name="model">shipment.request</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="shipment_type_id"/>
+                <field name="origin" optional="show"/>
+                <field name="destination" optional="show"/>
+                <field name="pickup_date"/>
+                <field name="delivery_date"/>
+                <field name="delivered_on" optional="hide"/>
+                <field name="total_weight"/>
+                <field name="total_volume" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state == 'draft'"
+                       decoration-info="state == 'preparing'"
+                       decoration-warning="state in ('with_courier', 'on_the_way')"
+                       decoration-success="state == 'delivered'"
+                       decoration-danger="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="shipment_request_view_form" model="ir.ui.view">
+        <field name="name">shipment.request.view.form</field>
+        <field name="model">shipment.request</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" type="object"
+                            string="Confirm" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_hand_to_courier" type="object"
+                            string="Hand to Courier" class="btn-primary"
+                            invisible="state != 'preparing'"/>
+                    <button name="action_on_the_way" type="object"
+                            string="Start Transit" class="btn-primary"
+                            invisible="state != 'with_courier'"/>
+                    <button name="action_deliver" type="object"
+                            string="Mark Delivered" class="btn-primary"
+                            invisible="state != 'on_the_way'"/>
+                    <button name="action_cancel" type="object"
+                            string="Cancel"
+                            confirm="Cancel this shipment? Its history stays on record and it can be reset to draft later."
+                            invisible="state in ('delivered', 'cancelled')"/>
+                    <button name="action_reset_to_draft" type="object"
+                            string="Reset to Draft"
+                            invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,preparing,with_courier,on_the_way,delivered"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Delivered" bg_color="text-bg-success" invisible="state != 'delivered'"/>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger" invisible="state != 'cancelled'"/>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group name="main">
+                            <field name="partner_id" widget="many2one_avatar" readonly="state not in ('draft', 'preparing')"/>
+                            <field name="shipment_type_id" readonly="state not in ('draft', 'preparing')"/>
+                            <field name="origin" placeholder="e.g. Main Warehouse, Cairo" readonly="state not in ('draft', 'preparing')"/>
+                            <field name="destination" placeholder="e.g. Client Site, Alexandria" readonly="state not in ('draft', 'preparing')"/>
+                        </group>
+                        <group name="dates" string="Schedule">
+                            <field name="pickup_date" readonly="state not in ('draft', 'preparing')"/>
+                            <field name="delivery_date"/>
+                            <field name="delivered_on" invisible="state != 'delivered'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Items" name="items">
+                            <field name="item_ids" readonly="state not in ('draft', 'preparing')">
+                                <list editable="bottom">
+                                    <field name="description"/>
+                                    <field name="quantity"/>
+                                    <field name="weight"/>
+                                    <field name="volume"/>
+                                    <field name="total_weight"/>
+                                    <field name="total_volume"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="total_weight"/>
+                                <field name="total_volume"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="shipment_request_view_search" model="ir.ui.view">
+        <field name="name">shipment.request.view.search</field>
+        <field name="model">shipment.request</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="origin"/>
+                <field name="destination"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Preparing" name="preparing" domain="[('state', '=', 'preparing')]"/>
+                <filter string="With Courier" name="with_courier" domain="[('state', '=', 'with_courier')]"/>
+                <filter string="On The Way" name="on_the_way" domain="[('state', '=', 'on_the_way')]"/>
+                <filter string="Delivered" name="delivered" domain="[('state', '=', 'delivered')]"/>
+                <filter string="Cancelled" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <group>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Shipment Type" name="group_type" context="{'group_by': 'shipment_type_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_shipment_request" model="ir.actions.act_window">
+        <field name="name">Shipment Requests</field>
+        <field name="res_model">shipment.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="shipment_request_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Register your first shipment request
+            </p>
+        </field>
+    </record>
+</odoo>
