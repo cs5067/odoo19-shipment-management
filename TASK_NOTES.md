@@ -7,19 +7,28 @@ lifecycle by clicking buttons, and print a shipment order for the driver.
 
 ## Context
 
-**What I set out to build.** A self-contained Odoo 19 module covering nine requirements:
+**What I set out to build.** A self-contained Odoo 19 module covering the assignment's
+ten requirements:
 
-1. Shipment **types** (name, code, category), configured only by the team lead.
-2. Shipment **requests** with an automatic reference number, recording customer, type,
-   origin, destination, pickup date, and delivery date.
-3. One shipment carries **multiple items** (description, quantity, weight, volume).
-4. The shipment shows **total weight and volume**, calculated automatically.
-5. A **lifecycle** advanced through user-clicked buttons.
-6. A shipment **cannot leave without cargo** — attempting it shows an error.
-7. **Status changes are recorded** and anyone can see when and how it progressed.
-8. Two roles: a **shipment user** (create/manage requests) and a **shipment manager**
-   (also creates types).
-9. The shipment can be **printed as a PDF**.
+1. Shipment **types** (name, code, category), maintained only by the team lead, and
+   archivable.
+2. Shipment **requests** with an automatic unique reference number, recording customer,
+   type, origin, destination, pickup date, and delivery date.
+3. One shipment carries **multiple cargo items** (description, quantity, weight, volume).
+4. The shipment shows **total weight and volume** that stay correct automatically as items
+   are added, changed, or removed.
+5. A **lifecycle** (Preparing → With Courier → On the Way → Delivered) advanced through
+   buttons — the status field cannot be edited directly.
+6. A shipment **cannot leave Preparing without cargo** — attempting it shows a clear error.
+7. **Status changes are recorded** in the record history so anyone can see when and how it
+   progressed.
+8. Two roles: a **Shipment User** (create/manage requests) and a **Shipment Manager**
+   (everything a user can, plus types). No data is open to every user by default.
+9. A **complete, usable interface**: list, a grouped kanban board where every lifecycle
+   stage is visible even when empty, a form with status bar and history, search/filters by
+   status, type, and customer, all reachable from a clear menu.
+10. The shipment order can be **printed as a PDF** with reference, customer, route, cargo
+    items, and totals.
 
 **Assumptions I made** (worth confirming with the team):
 
@@ -73,6 +82,13 @@ using the first version:
 - A **driver's PDF** ("Shipment Order") with a scannable barcode, From/Deliver-To blocks
   (including the customer's address and phone), a numbered cargo table with totals, and
   driver / receiver / prepared-by signature blocks.
+- **A grouped kanban board** alongside the list — shipments grouped by lifecycle stage,
+  with every stage column visible even when it's empty. Card dragging is disabled on
+  purpose: the status may only move through the buttons, so a drag can't sidestep the
+  guards.
+- **The status field is locked to the buttons.** Editing `state` directly — from any
+  client, even as admin — is refused; every transition funnels through one guarded method,
+  and a new request can only ever start as a draft.
 - **Guards that hold outside the UI.** State transitions, deletion, and cargo edits are all
   enforced in the model (not just hidden in the view), so they can't be bypassed by a stale
   browser tab or a direct API call. Details in the caveats below.
@@ -125,13 +141,13 @@ live `logistics` database only after it all passed.
 
 - **Assumption to confirm:** item weight/volume being per-unit (see Context). This is the
   one thing that would change stored numbers if the team's convention differs.
-- **Deliberately not built** (out of scope for the nine requirements — a richer version was
-  prototyped and then removed on purpose to keep the module focused): kanban/calendar
-  views, reporting dashboards/KPIs, customer email notifications, and a courier/driver
-  field ("who physically has the shipment" lives on the printed order's signature line, not
-  in the database — a conscious trade-off). Each is a clean add-on later — a kanban board is
-  ~20 lines of view XML; notifications need an SMTP server and a mail template; the courier
-  field is one `Many2one` plus a line on the hand-over button.
+- **Deliberately not built** (out of scope per the brief, or trimmed on purpose to keep the
+  module focused): pricing/rating, fleet or accounting integration, customer portal,
+  multi-company, carrier APIs (all explicitly out of scope); plus calendar views, reporting
+  dashboards/KPIs, customer email notifications, and a courier/driver field ("who
+  physically has the shipment" lives on the printed order's signature line, not in the
+  database — a conscious trade-off). Notifications would need an SMTP server and a mail
+  template; the courier field is one `Many2one` plus a line on the hand-over button.
 - **One-time cosmetic hiccup:** if a browser session was left parked on a view type that
   was later removed (an earlier build briefly had a calendar view), reloading can show
   "insufficient fields for calendar view." It's a stale-session artifact, not a module bug

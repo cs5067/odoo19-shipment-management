@@ -120,7 +120,29 @@ class ShipmentRequest(models.Model):
             vals["name"] = self.env["ir.sequence"].next_by_code(
                 "shipment.request"
             )
+            if vals.get("state") not in (None, False, "draft"):
+                raise UserError(
+                    _("A new shipment request always starts as a draft.")
+                )
         return super().create(vals_list)
+
+    def write(self, vals):
+        # The lifecycle advances through the workflow buttons only — the
+        # status field cannot be edited directly (assignment §5). Every
+        # action method funnels its state change through _advance_state.
+        if "state" in vals and not self.env.context.get(
+            "shipment_state_change"
+        ):
+            raise UserError(
+                _(
+                    "The shipment status cannot be edited directly. "
+                    "Use the workflow buttons to move it forward."
+                )
+            )
+        return super().write(vals)
+
+    def _advance_state(self, vals):
+        return self.with_context(shipment_state_change=True).write(vals)
 
     def action_confirm(self):
         for shipment in self:
@@ -132,7 +154,7 @@ class ShipmentRequest(models.Model):
                         shipment.name,
                     )
                 )
-            shipment.state = "preparing"
+            shipment._advance_state({"state": "preparing"})
 
     def action_hand_to_courier(self):
         for shipment in self:
@@ -152,7 +174,7 @@ class ShipmentRequest(models.Model):
                         shipment.name,
                     )
                 )
-            shipment.state = "with_courier"
+            shipment._advance_state({"state": "with_courier"})
 
     def action_on_the_way(self):
         for shipment in self:
@@ -164,7 +186,7 @@ class ShipmentRequest(models.Model):
                         shipment.name,
                     )
                 )
-            shipment.state = "on_the_way"
+            shipment._advance_state({"state": "on_the_way"})
 
     def action_deliver(self):
         for shipment in self:
@@ -176,7 +198,7 @@ class ShipmentRequest(models.Model):
                         shipment.name,
                     )
                 )
-            shipment.write(
+            shipment._advance_state(
                 {
                     "state": "delivered",
                     "delivered_on": fields.Datetime.now(),
@@ -193,7 +215,7 @@ class ShipmentRequest(models.Model):
                         shipment.name,
                     )
                 )
-            shipment.state = "cancelled"
+            shipment._advance_state({"state": "cancelled"})
 
     def action_reset_to_draft(self):
         for shipment in self:
@@ -205,7 +227,7 @@ class ShipmentRequest(models.Model):
                         shipment.name,
                     )
                 )
-            shipment.write({"state": "draft", "delivered_on": False})
+            shipment._advance_state({"state": "draft", "delivered_on": False})
 
     @api.ondelete(at_uninstall=False)
     def _unlink_except_in_progress(self):
