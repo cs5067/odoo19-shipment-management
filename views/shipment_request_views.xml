@@ -96,6 +96,32 @@
         </field>
     </record>
 
+    <record id="shipment_request_view_kanban" model="ir.ui.view">
+        <field name="name">shipment.request.view.kanban</field>
+        <field name="model">shipment.request</field>
+        <field name="arch" type="xml">
+            <!-- records_draggable=false: the lifecycle advances through the
+                 buttons only (assignment §5) — dragging a card would write
+                 the status directly and skip the guards. -->
+            <kanban default_group_by="state" records_draggable="false"
+                    quick_create="false" sample="1">
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <field name="name" class="fw-bolder"/>
+                            <field name="total_weight"/>
+                        </div>
+                        <field name="partner_id"/>
+                        <div class="text-muted">
+                            <field name="origin"/> → <field name="destination"/>
+                        </div>
+                        <field name="delivery_date"/>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
     <record id="shipment_request_view_search" model="ir.ui.view">
         <field name="name">shipment.request.view.search</field>
         <field name="model">shipment.request</field>
@@ -103,6 +129,7 @@
             <search>
                 <field name="name"/>
                 <field name="partner_id"/>
+                <field name="shipment_type_id"/>
                 <field name="origin"/>
                 <field name="destination"/>
                 <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
@@ -123,7 +150,7 @@
     <record id="action_shipment_request" model="ir.actions.act_window">
         <field name="name">Shipment Requests</field>
         <field name="res_model">shipment.request</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="shipment_request_view_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

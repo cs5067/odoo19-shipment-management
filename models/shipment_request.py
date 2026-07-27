@@ -63,6 +63,7 @@ class ShipmentRequest(models.Model):
         required=True,
         copy=False,
         tracking=True,
+        group_expand=True,
     )
     delivered_on = fields.Datetime(
         string="Delivered On",
