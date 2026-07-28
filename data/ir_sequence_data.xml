@@ -4,7 +4,7 @@
         <record id="seq_shipment_request" model="ir.sequence">
             <field name="name">Shipment Request</field>
             <field name="code">shipment.request</field>
-            <field name="prefix">SHIP/%(year)s/</field>
+            <field name="prefix">%(year)s/</field>
             <field name="padding">5</field>
             <field name="use_date_range" eval="True"/>
         </record>

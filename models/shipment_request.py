@@ -117,8 +117,16 @@ class ShipmentRequest(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            vals["name"] = self.env["ir.sequence"].next_by_code(
-                "shipment.request"
+            # Reference format: TYPE CODE / YEAR / NUMBER (e.g. EXP/2026/00001).
+            # The sequence provides "year/number" with a shared yearly counter;
+            # the type code is prepended at creation and never rewritten, so a
+            # reference stays stable even if the type's code is edited later.
+            shipment_type = self.env["shipment.type"].browse(
+                vals.get("shipment_type_id")
+            )
+            vals["name"] = "%s/%s" % (
+                shipment_type.code or "SHIP",
+                self.env["ir.sequence"].next_by_code("shipment.request"),
             )
             if vals.get("state") not in (None, False, "draft"):
                 raise UserError(

@@ -1,7 +1,7 @@
 {
     "name": "Shipment Management",
     "summary": "Register shipment requests with lifecycle tracking and driver PDF orders",
-    "version": "19.0.4.1.0",
+    "version": "19.0.5.0.0",
     "category": "Inventory/Delivery",
     "author": "Logistics Team",
     "license": "LGPL-3",

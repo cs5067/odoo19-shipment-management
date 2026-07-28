@@ -66,7 +66,10 @@ using the first version:
   custom JavaScript.
 - **Types** are managed under *Shipments → Configuration* and are visible-but-read-only to
   regular users; only managers can create or edit them.
-- **Requests** get their reference automatically on save (e.g. `SHIP/2026/00001`). The
+- **Requests** get their reference automatically on save, prefixed by the shipment type's
+  code so the reference is self-describing (e.g. `EXP/2026/00001` — an express shipment
+  registered in 2026). The number comes from one shared yearly counter across all types,
+  and the reference never changes afterwards, even if the type's code is edited. The
   reference is always issued by the system — a value sent by a client is ignored — and the
   database enforces that references are unique.
 - **Items** are entered as lines inside the request; **total weight and volume recompute
@@ -186,7 +189,7 @@ docker compose restart odoo
 1. *Shipments → Configuration → Shipment Types* → create one (e.g. name `Express`,
    code `EXP`, category Express).
 2. *Shipments → Shipment Requests → New* → pick customer, type, origin, destination, dates.
-   Save — the reference fills in as `SHIP/2026/00001`.
+   Save — the reference fills in as `EXP/2026/00001` (type code / year / number).
 3. **Confirm** → then **Hand to Courier** *before adding items* → you'll get the no-cargo
    error (requirement 6).
 4. Add a couple of items; watch the totals compute. Hand to Courier → Start Transit →
@@ -224,8 +227,10 @@ lives on its own — that's what lets managers own it while regular users only r
 The centre of the module. Holds the customer and type (both `Many2one`), the route and
 dates, the reference `name`, and the `state`.
 
-- **Reference** is assigned in `create()` from an `ir.sequence` and protected by a unique
-  constraint — automatic, non-forgeable, collision-free even if two people save at once.
+- **Reference** is assigned in `create()`: the type's code is prepended to a yearly
+  `ir.sequence` ("year/number"), giving `EXP/2026/00001`, protected by a unique constraint
+  — automatic, self-describing, non-forgeable, collision-free even if two people save at
+  once (the counter is shared across types, so numbers can never collide).
 - **Totals** are stored computed fields that depend on the item lines, so they're always
   correct and can be shown in lists without recalculating.
 - **State** is a plain Selection; the buttons call methods that validate the transition.
