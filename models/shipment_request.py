@@ -191,6 +191,20 @@ class ShipmentRequest(models.Model):
     def _advance_state(self, vals):
         return self.with_context(shipment_state_change=True).write(vals)
 
+    def action_save_draft(self):
+        # A header button always saves the record before running its method,
+        # so this gives people an obvious, labelled Save while they build up
+        # a draft over hours or days — no hunting for a toolbar icon.
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "type": "success",
+                "message": _("Draft saved. You can come back to it any time."),
+                "sticky": False,
+            },
+        }
+
     def action_confirm(self):
         for shipment in self:
             if shipment.state != "draft":

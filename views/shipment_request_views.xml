@@ -31,6 +31,9 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <button name="action_save_draft" type="object"
+                            string="Save as Draft"
+                            invisible="state != 'draft'"/>
                     <button name="action_confirm" type="object"
                             string="Confirm" class="btn-primary"
                             invisible="state != 'draft'"/>
@@ -56,6 +59,13 @@
                 <sheet>
                     <widget name="web_ribbon" title="Delivered" bg_color="text-bg-success" invisible="state != 'delivered'"/>
                     <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger" invisible="state != 'cancelled'"/>
+                    <div class="alert alert-info mb-3" role="status"
+                         invisible="state != 'draft'">
+                        This request is a <b>draft</b> — fill in what you know and
+                        press <b>Save as Draft</b> to come back to it later.
+                        Press <b>Confirm</b> once everything is complete: it gets its
+                        reference number and the shipment starts being prepared.
+                    </div>
                     <div class="oe_title">
                         <h1><field name="display_name"/></h1>
                     </div>
