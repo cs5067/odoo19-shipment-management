@@ -1,7 +1,7 @@
 {
     "name": "Shipment Management",
     "summary": "Register shipment requests with lifecycle tracking and driver PDF orders",
-    "version": "19.0.5.1.0",
+    "version": "19.0.6.0.0",
     "category": "Inventory/Delivery",
     "author": "Logistics Team",
     "license": "LGPL-3",
@@ -16,6 +16,11 @@
         "report/shipment_report.xml",
         "report/shipment_report_templates.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "shipment_management/static/src/**/*",
+        ],
+    },
     "application": True,
     "installable": True,
 }

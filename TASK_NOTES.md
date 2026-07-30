@@ -67,14 +67,22 @@ using the first version:
 - **Types** are managed under *Shipments → Shipment Types* — a flat, two-item menu on
   purpose: with one operational screen and one configuration screen, intermediate
   "Operations"/"Configuration" folders would only add clicks. The code proposes itself
-  from the name ("Express Freight" → `EXPR`) and stays editable. Types are visible-but-read-only to
-  regular users; only managers can create or edit them.
-- **Requests** get their reference automatically on save, prefixed by the shipment type's
-  code so the reference is self-describing (e.g. `EXP/2026/00001` — an express shipment
-  registered in 2026). The number comes from one shared yearly counter across all types,
-  and the reference never changes afterwards, even if the type's code is edited. The
-  reference is always issued by the system — a value sent by a client is ignored — and the
-  database enforces that references are unique.
+  from the name ("Express Freight" → `EXP`, "Road" → `ROAD`) and stays editable. Types are
+  visible-but-read-only to regular users; only managers can create or edit them.
+- **Drafts save half-finished.** A big shipment can take days to enter, and the delivery
+  date or route may not be known yet — so nothing is required just to SAVE a request. It
+  waits in Draft, editable, for as long as needed. **Confirm is the completeness gate**: it
+  refuses with a friendly message that names exactly which fields are still missing.
+- **Requests are numbered when confirmed, not when saved** — like invoices. The reference
+  is the type's code plus a shared yearly counter (`EXP/2026/00001` — an express shipment,
+  2026), so it's self-describing; drafts show "New" and never consume a number, and once
+  assigned a reference never changes (even if the type's code is edited, and even through
+  cancel → reset-to-draft). References are always issued by the system and the database
+  enforces their uniqueness.
+- **Discarding asks first.** Closing a form with typed-but-unsaved changes shows a
+  confirmation offering the alternative (Save keeps it as a draft). This is the module's
+  one deliberate piece of frontend JavaScript — a small, scoped patch of the form
+  controller for this model only.
 - **Items** are entered as lines inside the request; **total weight and volume recompute
   themselves** live as lines change, and show both in the list and on the form.
 - The **lifecycle** is Draft → Preparing → With Courier → On The Way → Delivered, plus
@@ -192,7 +200,9 @@ docker compose restart odoo
 1. *Shipments → Shipment Types* → create one (e.g. name `Express`,
    code `EXP`, category Express).
 2. *Shipments → Shipment Requests → New* → pick customer, type, origin, destination, dates.
-   Save — the reference fills in as `EXP/2026/00001` (type code / year / number).
+   Save — it stays a draft named "New" (you can save it half-finished and come back).
+   Click **Confirm** — only now must everything be filled in, and the reference appears:
+   `EXP/2026/00001` (type code / year / number).
 3. **Confirm** → then **Hand to Courier** *before adding items* → you'll get the no-cargo
    error (requirement 6).
 4. Add a couple of items; watch the totals compute. Hand to Courier → Start Transit →
@@ -230,10 +240,11 @@ lives on its own — that's what lets managers own it while regular users only r
 The centre of the module. Holds the customer and type (both `Many2one`), the route and
 dates, the reference `name`, and the `state`.
 
-- **Reference** is assigned in `create()`: the type's code is prepended to a yearly
-  `ir.sequence` ("year/number"), giving `EXP/2026/00001`, protected by a unique constraint
-  — automatic, self-describing, non-forgeable, collision-free even if two people save at
-  once (the counter is shared across types, so numbers can never collide).
+- **Reference** is assigned at confirmation (`action_confirm`): the type's code is
+  prepended to a yearly `ir.sequence` ("year/number"), giving `EXP/2026/00001`, protected
+  by a unique constraint — automatic, self-describing, non-forgeable, collision-free even
+  if two people confirm at once, and never consumed by drafts that get abandoned. Fields
+  are two-tier: nothing is required to save a draft; everything is required to confirm.
 - **Totals** are stored computed fields that depend on the item lines, so they're always
   correct and can be shown in lists without recalculating.
 - **State** is a plain Selection; the buttons call methods that validate the transition.

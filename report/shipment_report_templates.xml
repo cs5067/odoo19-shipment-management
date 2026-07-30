@@ -10,11 +10,12 @@
                                 <td style="width: 55%; vertical-align: middle;">
                                     <h2 style="margin-bottom: 0;">Shipment Order</h2>
                                     <h3 style="margin-top: 0; color: #666;">
-                                        <span t-field="doc.name"/>
+                                        <span t-out="doc.display_name"/>
                                     </h3>
                                 </td>
                                 <td style="width: 45%; text-align: right; vertical-align: middle;">
-                                    <img t-attf-src="data:image/png;base64,{{doc._get_barcode_base64()}}"
+                                    <img t-if="doc.name"
+                                         t-attf-src="data:image/png;base64,{{doc._get_barcode_base64()}}"
                                          style="width: 280px; height: 70px;" alt="Barcode"/>
                                 </td>
                             </tr>

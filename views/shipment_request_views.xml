@@ -57,7 +57,7 @@
                     <widget name="web_ribbon" title="Delivered" bg_color="text-bg-success" invisible="state != 'delivered'"/>
                     <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger" invisible="state != 'cancelled'"/>
                     <div class="oe_title">
-                        <h1><field name="name"/></h1>
+                        <h1><field name="display_name"/></h1>
                     </div>
                     <group>
                         <group name="main">
@@ -108,7 +108,7 @@
                 <templates>
                     <t t-name="card">
                         <div class="d-flex justify-content-between">
-                            <field name="name" class="fw-bolder"/>
+                            <field name="display_name" class="fw-bolder"/>
                             <field name="total_weight"/>
                         </div>
                         <field name="partner_id"/>

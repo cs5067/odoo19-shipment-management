@@ -10,30 +10,31 @@ class ShipmentRequest(models.Model):
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "id desc"
 
+    # A draft can be saved half-finished (a big shipment may take days to
+    # enter, or the delivery date may not be known yet), so none of these
+    # fields are required to SAVE — action_confirm() enforces completeness
+    # before the shipment enters the real lifecycle.
     name = fields.Char(
         string="Reference",
-        default=lambda self: _("New"),
         copy=False,
         readonly=True,
     )
     partner_id = fields.Many2one(
         "res.partner",
         string="Customer",
-        required=True,
         tracking=True,
     )
     shipment_type_id = fields.Many2one(
         "shipment.type",
         string="Shipment Type",
-        required=True,
         tracking=True,
     )
-    origin = fields.Char(required=True, tracking=True)
-    destination = fields.Char(required=True, tracking=True)
+    origin = fields.Char(tracking=True)
+    destination = fields.Char(tracking=True)
     pickup_date = fields.Date(
-        required=True, tracking=True, default=fields.Date.context_today
+        tracking=True, default=fields.Date.context_today
     )
-    delivery_date = fields.Date(required=True, tracking=True)
+    delivery_date = fields.Date(tracking=True)
     item_ids = fields.One2many(
         "shipment.item",
         "shipment_id",
@@ -77,6 +78,11 @@ class ShipmentRequest(models.Model):
         "The shipment reference must be unique.",
     )
 
+    @api.depends("name")
+    def _compute_display_name(self):
+        for shipment in self:
+            shipment.display_name = shipment.name or _("New")
+
     @api.depends("item_ids.total_weight", "item_ids.total_volume")
     def _compute_totals(self):
         for shipment in self:
@@ -86,7 +92,11 @@ class ShipmentRequest(models.Model):
     @api.constrains("pickup_date", "delivery_date")
     def _check_dates(self):
         for shipment in self:
-            if shipment.delivery_date < shipment.pickup_date:
+            if (
+                shipment.pickup_date
+                and shipment.delivery_date
+                and shipment.delivery_date < shipment.pickup_date
+            ):
                 raise ValidationError(
                     _("The delivery date cannot be before the pickup date.")
                 )
@@ -106,9 +116,11 @@ class ShipmentRequest(models.Model):
     @api.constrains("origin", "destination")
     def _check_route(self):
         for shipment in self:
-            same = (shipment.origin or "").strip().lower() == (
-                shipment.destination or ""
-            ).strip().lower()
+            if not shipment.origin or not shipment.destination:
+                continue
+            same = shipment.origin.strip().lower() == (
+                shipment.destination.strip().lower()
+            )
             if same:
                 raise ValidationError(
                     _("Origin and destination cannot be the same place.")
@@ -117,22 +129,49 @@ class ShipmentRequest(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            # Reference format: TYPE CODE / YEAR / NUMBER (e.g. EXP/2026/00001).
-            # The sequence provides "year/number" with a shared yearly counter;
-            # the type code is prepended at creation and never rewritten, so a
-            # reference stays stable even if the type's code is edited later.
-            shipment_type = self.env["shipment.type"].browse(
-                vals.get("shipment_type_id")
-            )
-            vals["name"] = "%s/%s" % (
-                shipment_type.code or "SHIP",
-                self.env["ir.sequence"].next_by_code("shipment.request"),
-            )
             if vals.get("state") not in (None, False, "draft"):
                 raise UserError(
                     _("A new shipment request always starts as a draft.")
                 )
         return super().create(vals_list)
+
+    _CONFIRM_REQUIRED_FIELDS = (
+        "partner_id",
+        "shipment_type_id",
+        "origin",
+        "destination",
+        "pickup_date",
+        "delivery_date",
+    )
+
+    def _check_ready_to_confirm(self):
+        for shipment in self:
+            missing = [
+                shipment._fields[field_name].string
+                for field_name in self._CONFIRM_REQUIRED_FIELDS
+                if not shipment[field_name]
+            ]
+            if missing:
+                raise UserError(
+                    _(
+                        "This request is still missing: %s. "
+                        "Fill those in to confirm it — until then it "
+                        "stays saved as a draft.",
+                        ", ".join(missing),
+                    )
+                )
+
+    def _assign_reference(self):
+        # Reference format: TYPE CODE / YEAR / NUMBER (e.g. EXP/2026/00001),
+        # assigned once at confirmation — like invoices, drafts carry no
+        # number, so abandoned drafts never consume one — and never
+        # rewritten afterwards, even if the type's code is edited later.
+        for shipment in self:
+            if not shipment.name:
+                shipment.name = "%s/%s" % (
+                    shipment.shipment_type_id.code,
+                    self.env["ir.sequence"].next_by_code("shipment.request"),
+                )
 
     def write(self, vals):
         # The lifecycle advances through the workflow buttons only — the
@@ -159,9 +198,11 @@ class ShipmentRequest(models.Model):
                     _(
                         "Only draft requests can be confirmed. "
                         "%s is already in progress.",
-                        shipment.name,
+                        shipment.display_name,
                     )
                 )
+            shipment._check_ready_to_confirm()
+            shipment._assign_reference()
             shipment._advance_state({"state": "preparing"})
 
     def action_hand_to_courier(self):
