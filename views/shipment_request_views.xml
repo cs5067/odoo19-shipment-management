@@ -46,10 +46,10 @@
                     <button name="action_cancel" type="object"
                             string="Cancel"
                             confirm="Cancel this shipment? Its history stays on record and it can be reset to draft later."
-                            invisible="state in ('delivered', 'cancelled')"/>
+                            invisible="not id or state in ('delivered', 'cancelled')"/>
                     <button name="action_reset_to_draft" type="object"
                             string="Reset to Draft"
-                            invisible="state != 'cancelled'"/>
+                            invisible="not id or state != 'cancelled'"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,preparing,with_courier,on_the_way,delivered"/>
                 </header>
