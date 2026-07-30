@@ -32,12 +32,14 @@ class ShipmentType(models.Model):
 
     @api.onchange("name")
     def _onchange_name_propose_code(self):
-        # Propose a code from the name so the lead doesn't have to invent
-        # one (e.g. "Express Freight" -> "EXPR"); it stays fully editable.
+        # Propose a code the way a person would abbreviate: short words stay
+        # whole (Road -> ROAD, Air -> AIR), longer ones cut to three letters
+        # (Express Freight -> EXP, Parcel -> PAR). Always editable.
         for shipment_type in self:
             if shipment_type.name and not shipment_type.code:
                 first_word = shipment_type.name.strip().split(" ")[0]
-                shipment_type.code = first_word[:4].upper()
+                proposal = first_word if len(first_word) <= 5 else first_word[:3]
+                shipment_type.code = proposal.upper()
 
     @staticmethod
     def _normalize(vals):
