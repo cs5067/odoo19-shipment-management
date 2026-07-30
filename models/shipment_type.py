@@ -30,6 +30,15 @@ class ShipmentType(models.Model):
         "The shipment type name must be unique.",
     )
 
+    @api.onchange("name")
+    def _onchange_name_propose_code(self):
+        # Propose a code from the name so the lead doesn't have to invent
+        # one (e.g. "Express Freight" -> "EXPR"); it stays fully editable.
+        for shipment_type in self:
+            if shipment_type.name and not shipment_type.code:
+                first_word = shipment_type.name.strip().split(" ")[0]
+                shipment_type.code = first_word[:4].upper()
+
     @staticmethod
     def _normalize(vals):
         # Trim stray spaces and upper-case the code so " exp " and "EXP"

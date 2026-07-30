@@ -64,7 +64,10 @@ using the first version:
 
 - Built the full module: **3 models, 2 roles, 4 views, 1 sequence, 1 PDF report**, no
   custom JavaScript.
-- **Types** are managed under *Shipments → Configuration* and are visible-but-read-only to
+- **Types** are managed under *Shipments → Shipment Types* — a flat, two-item menu on
+  purpose: with one operational screen and one configuration screen, intermediate
+  "Operations"/"Configuration" folders would only add clicks. The code proposes itself
+  from the name ("Express Freight" → `EXPR`) and stays editable. Types are visible-but-read-only to
   regular users; only managers can create or edit them.
 - **Requests** get their reference automatically on save, prefixed by the shipment type's
   code so the reference is self-describing (e.g. `EXP/2026/00001` — an express shipment
@@ -186,7 +189,7 @@ docker compose restart odoo
 
 **Try the flow:**
 
-1. *Shipments → Configuration → Shipment Types* → create one (e.g. name `Express`,
+1. *Shipments → Shipment Types* → create one (e.g. name `Express`,
    code `EXP`, category Express).
 2. *Shipments → Shipment Requests → New* → pick customer, type, origin, destination, dates.
    Save — the reference fills in as `EXP/2026/00001` (type code / year / number).
